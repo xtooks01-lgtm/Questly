@@ -1,5 +1,5 @@
 
-import { Badge, TaskCategory, TaskDifficulty, RankName, RankTier } from './types';
+import { Badge, TaskCategory, TaskDifficulty, RankName, RankTier } from '../types';
 
 export const INITIAL_BADGES: Badge[] = [
   { id: '1', name: 'First Quest', icon: '🚀', description: 'Complete your first task' },

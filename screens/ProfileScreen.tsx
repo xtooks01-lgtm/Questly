@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { UserProfile, RankName } from '../types';
-import { INITIAL_BADGES, XP_PER_TIER } from '../constants';
+import { INITIAL_BADGES, XP_PER_TIER } from '../components/constants';
 
 interface ProfileScreenProps {
   user: UserProfile;

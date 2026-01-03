@@ -1,6 +1,6 @@
 
 import { Task, UserProfile, DailyProgress, ChatMessage } from '../types';
-import { INITIAL_BADGES } from '../constants';
+import { INITIAL_BADGES } from '../components/constants';
 
 const STORAGE_KEY = 'questly_data_v7';
 

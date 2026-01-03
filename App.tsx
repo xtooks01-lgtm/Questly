@@ -9,7 +9,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import AiLabScreen from './screens/AiLabScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
-import { XP_PER_LEVEL, RANKS, TIERS, XP_PER_TIER } from './constants';
+import { XP_PER_LEVEL, RANKS, TIERS, XP_PER_TIER } from './components/constants';
 import { getProgressNudge } from './services/geminiService';
 
 const LogoQ = ({ className }: { className?: string }) => (

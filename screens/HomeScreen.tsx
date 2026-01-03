@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Task, TaskCategory, TaskDifficulty, PracticeQuestion } from '../types';
 import { getAITaskSuggestions, getMasteryChallenge, MasteryChallenge } from '../services/geminiService';
 import TaskCard from '../components/TaskCard';
-import { CATEGORIES, DIFFICULTIES } from '../constants';
+import { CATEGORIES, DIFFICULTIES } from '../components/constants';
 
 interface HomeScreenProps {
   tasks: Task[];
