@@ -4,6 +4,15 @@ import { ChatModel, PracticeQuestion } from "../types";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const AI_TIMEOUT_MS = 10000; // 10 second timeout
+
+async function withTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  const timeout = new Promise<T>((resolve) =>
+    setTimeout(() => resolve(fallback), AI_TIMEOUT_MS)
+  );
+  return Promise.race([promise, timeout]);
+}
+
 export interface SuggestedTask {
   title: string;
   description: string;
@@ -17,7 +26,7 @@ export interface MasteryChallenge {
 
 export const getAITaskSuggestions = async (goal: string): Promise<SuggestedTask[]> => {
   const ai = getAI();
-  try {
+  const apiCall = async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Act as a personal academic coach. Break down the following high-level student goal into exactly 3-5 highly specific, actionable, and bite-sized sub-tasks that can be completed in one sitting. 
@@ -39,14 +48,14 @@ export const getAITaskSuggestions = async (goal: string): Promise<SuggestedTask[
       }
     });
     return JSON.parse(response.text || "[]");
-  } catch (error) {
-    return [];
-  }
+  };
+
+  return withTimeout(apiCall(), []);
 };
 
 export const getMasteryChallenge = async (topic: string): Promise<MasteryChallenge> => {
   const ai = getAI();
-  try {
+  const apiCall = async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `The student just completed a quest on: "${topic}". 
@@ -88,23 +97,21 @@ export const getMasteryChallenge = async (topic: string): Promise<MasteryChallen
       }
     });
     return JSON.parse(response.text || '{"questions":[], "nextQuest": {"title": "Error", "description": "Failed to load", "category": "Other"}}');
-  } catch (error) {
-    console.error("Mastery AI error:", error);
-    return { questions: [], nextQuest: { title: "Self-Review", description: "Review your recent work deeply.", category: "Other" } };
-  }
+  };
+
+  return withTimeout(apiCall(), { questions: [], nextQuest: { title: "Self-Review", description: "Review your recent work deeply.", category: "Other" } });
 };
 
 export const getProgressNudge = async (completed: number, total: number): Promise<string> => {
   const ai = getAI();
-  try {
+  const apiCall = async () => {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `User has completed ${completed}/${total} tasks today. Give a 1-sentence supportive academic nudge.`,
     });
     return response.text || "Keep it up!";
-  } catch (error) {
-    return "You're doing great!";
-  }
+  };
+  return withTimeout(apiCall(), "You're doing great!");
 };
 
 export const chatWithRudhh = async (
@@ -115,11 +122,11 @@ export const chatWithRudhh = async (
 ): Promise<{ text: string; modelName: string; groundingChunks?: any[] }> => {
   const ai = getAI();
   const modelName = 'gemini-3-flash-preview';
-  const config: any = {
-    systemInstruction: `You are Dr. Rudhh. Personality: ${personality}. Your goal is to help students solve problems, explain concepts, and provide academic support. Use the search tool to provide up-to-date and accurate information.`,
-    tools: [{ googleSearch: {} }]
-  };
-  try {
+  const apiCall = async () => {
+    const config: any = {
+      systemInstruction: `You are Dr. Rudhh. Personality: ${personality}. Your goal is to help students solve problems, explain concepts, and provide academic support. Use the search tool to provide up-to-date and accurate information.`,
+      tools: [{ googleSearch: {} }]
+    };
     const response = await ai.models.generateContent({
       model: modelName,
       contents: [...history, { role: 'user', parts: [{ text: message }] }],
@@ -130,15 +137,19 @@ export const chatWithRudhh = async (
       modelName,
       groundingChunks: response.candidates?.[0]?.groundingMetadata?.groundingChunks
     };
-  } catch (error) {
-    console.error("Chat Error:", error);
-    return { text: "Maintenance required. Try again shortly.", modelName };
-  }
+  };
+
+  // Fixed the TypeScript error by adding groundingChunks: undefined to the fallback object
+  return withTimeout(apiCall(), { 
+    text: "I'm currently recalibrating my data nodes. Please try messaging me again in a moment.", 
+    modelName,
+    groundingChunks: undefined
+  });
 };
 
 export const analyzeImage = async (base64: string, mimeType: string, prompt: string): Promise<string> => {
   const ai = getAI();
-  try {
+  const apiCall = async () => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: {
@@ -146,9 +157,8 @@ export const analyzeImage = async (base64: string, mimeType: string, prompt: str
       }
     });
     return response.text || "Image analyzed.";
-  } catch (error) {
-    return "Error analyzing image.";
-  }
+  };
+  return withTimeout(apiCall(), "Analysis timed out. Please try again.");
 };
 
 function decodeBase64(base64: string): Uint8Array {
@@ -178,7 +188,6 @@ export const speakResponse = async (text: string): Promise<void> => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     const bytes = decodeBase64(base64Audio);
     
-    // Ensure the buffer is aligned for Int16Array
     const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     const dataInt16 = new Int16Array(arrayBuffer);
     

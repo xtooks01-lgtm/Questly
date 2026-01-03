@@ -159,30 +159,50 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
 
   const handleAiSuggestions = async () => {
     if (!newTitle.trim()) return;
-    setIsAiLoading(true);
-    const suggestions = await getAITaskSuggestions(newTitle);
-    const now = new Date().toISOString();
     
+    const now = new Date().toISOString();
     const diffData = DIFFICULTIES.find(d => d.label === difficulty);
+    const questTitle = newTitle;
+    const questId = Math.random().toString(36).substr(2, 9);
+    
+    // Create the task immediately in the UI
     const newTask: Task = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: newTitle,
+      id: questId,
+      title: questTitle,
       category,
       difficulty,
       isCompleted: false,
       dueDate: new Date(dueDate).toISOString(),
       createdAt: now,
-      xpValue: (diffData?.xp || 50) + (suggestions.length * 10),
+      xpValue: (diffData?.xp || 50),
       isAiGenerated: true,
-      subTasks: suggestions.map(s => ({
-        id: Math.random().toString(36).substr(2, 5),
-        title: s.title,
-        isCompleted: false
-      }))
+      subTasks: [] // Initially empty
     };
     
-    onTasksUpdate([newTask, ...tasks]);
-    resetForm();
+    // Instant UI update
+    const currentTasksSnapshot = [newTask, ...tasks];
+    onTasksUpdate(currentTasksSnapshot);
+    resetForm(); // Close modal instantly
+
+    // AI Background Processing
+    getAITaskSuggestions(questTitle).then(suggestions => {
+      if (suggestions && suggestions.length > 0) {
+        // Find the quest in the latest state and update its subtasks
+        // Since we don't have direct access to the parent state, we rely on the next update cycle
+        // or the parent will handle the persistence. We call onTasksUpdate again with the new data.
+        onTasksUpdate(currentTasksSnapshot.map(t => 
+          t.id === questId ? {
+            ...t,
+            xpValue: t.xpValue + (suggestions.length * 10),
+            subTasks: suggestions.map(s => ({
+              id: Math.random().toString(36).substr(2, 5),
+              title: s.title,
+              isCompleted: false
+            }))
+          } : t
+        ));
+      }
+    });
   };
 
   const resetForm = () => {
