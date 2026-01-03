@@ -1,7 +1,6 @@
 
 import React, { useState, useRef } from 'react';
 import { UserProfile, Task } from '../types';
-import { getAITaskSuggestions } from '../services/geminiService';
 
 interface OnboardingScreenProps {
   onComplete: (user: UserProfile, initialTasks: Task[]) => void;
@@ -55,32 +54,29 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
     }
   };
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (step === 1 && name.trim()) {
       setStep(2);
     } else if (step === 2 && goal.trim()) {
       setStep(3);
     } else if (step === 3) {
-      setIsProcessing(true);
-      
-      // Breakdown the goal with AI immediately
-      const suggestions = await getAITaskSuggestions(goal);
+      // Instant completion without waiting for AI breakdown
       const now = new Date().toISOString();
-      const initialTasks: Task[] = suggestions.map(s => ({
-        id: Math.random().toString(36).substr(2, 9),
-        title: s.title,
-        description: s.description,
-        category: 'Study',
-        difficulty: 'Hard',
-        isCompleted: false,
-        dueDate: now,
-        createdAt: now,
-        xpValue: 100,
-        isAiGenerated: true
-      }));
+      const initialTasks: Task[] = [
+        {
+          id: Math.random().toString(36).substr(2, 9),
+          title: `Start: ${goal}`,
+          description: `Begin your journey to complete: ${goal}`,
+          category: 'Study',
+          difficulty: 'Easy',
+          isCompleted: false,
+          dueDate: now,
+          createdAt: now,
+          xpValue: 50,
+          isAiGenerated: false
+        }
+      ];
 
-      // Fixed: Added missing properties (rankXP, currentRank, currentTier, highestRank, isRankedMode)
-      // to satisfy the UserProfile and ThemeSettings interfaces.
       const finalUser: UserProfile = {
         name: name.trim(),
         xp: 0,
@@ -160,7 +156,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
                 className="w-full h-32 bg-slate-900/50 border-2 border-slate-800 rounded-2xl p-4 text-center text-lg font-medium focus:outline-none focus:border-violet-500 transition-all placeholder:opacity-20 resize-none"
               />
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-4">
-                We’ll break this goal into small, achievable quests.
+                We’ll help you stay on track and level up.
               </p>
             </div>
           )}
@@ -204,7 +200,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
         {/* Camera Modal */}
         {showCamera && (
           <div className="fixed inset-0 z-[110] bg-slate-950 flex flex-col items-center justify-center p-6">
-            <video ref={videoRef} autoPlay playsInline className="w-full max-w-sm rounded-3xl mb-8" />
+            <video ref={videoRef} autoPlay playsInline className="w-full max-sm rounded-3xl mb-8" />
             <div className="flex gap-4">
                <button onClick={capturePhoto} className="w-16 h-16 bg-white rounded-full border-4 border-slate-300" />
                <button 
@@ -221,7 +217,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
           disabled={isProcessing || (step === 1 && !name.trim()) || (step === 2 && !goal.trim())}
           className={`w-full mt-12 gradient-bg text-white p-5 rounded-3xl font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl shadow-violet-500/20 disabled:opacity-30 ${isProcessing ? 'animate-pulse' : 'hover:scale-105 active:scale-95'}`}
         >
-          {isProcessing ? 'Forging Quests...' : step === 3 ? 'Begin Journey' : 'Continue'}
+          {isProcessing ? 'Saving Hero...' : step === 3 ? 'Begin Journey' : 'Continue'}
           <span className="text-xl">➔</span>
         </button>
       </div>
