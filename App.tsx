@@ -96,8 +96,8 @@ const App: React.FC = () => {
     }
   };
 
-  const updateTasks = (newTasks: Task[]) => {
-    setTasks(newTasks);
+  const updateTasks = (newTasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => {
+    setTasks(newTasksOrUpdater);
   };
 
   const updateUser = (updatedUser: UserProfile) => {

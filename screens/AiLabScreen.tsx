@@ -40,7 +40,7 @@ const AiLabScreen: React.FC<AiLabScreenProps> = ({ user }) => {
         parts: [{ text: m.text }]
       }));
       
-      const { text, modelName, groundingChunks } = await gemini.chatWithRudhh(
+      const response = await gemini.chatWithRudhh(
         input, 
         contextHistory, 
         user.settings.modelPreference,
@@ -50,13 +50,19 @@ const AiLabScreen: React.FC<AiLabScreenProps> = ({ user }) => {
       const botMsg: ChatMessage = { 
         id: (Date.now() + 1).toString(), 
         role: 'model', 
-        text,
-        modelUsed: modelName,
-        groundingChunks
+        text: response.text,
+        modelUsed: response.modelName,
+        groundingChunks: response.groundingChunks
       };
       setMessages(prev => [...prev, botMsg]);
     } catch (err) {
       console.error(err);
+      const errorMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'model',
+        text: "I'm having trouble connecting to my central processor. Please try again in a few moments."
+      };
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +83,8 @@ const AiLabScreen: React.FC<AiLabScreenProps> = ({ user }) => {
           text: response,
           media: { type: 'image', url: reader.result as string, mimeType: file.type }
         }]);
+      } catch (e) {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', text: "Analysis error." }]);
       } finally {
         setIsLoading(false);
         setInput('');

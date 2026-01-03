@@ -7,7 +7,7 @@ import { CATEGORIES, DIFFICULTIES } from '../components/constants';
 
 interface HomeScreenProps {
   tasks: Task[];
-  onTasksUpdate: (tasks: Task[]) => void;
+  onTasksUpdate: (tasksOrUpdater: Task[] | ((prev: Task[]) => Task[])) => void;
   onComplete: (xp: number, isMajorQuest: boolean) => void;
 }
 
@@ -67,7 +67,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
 
       // Clean up view
       setTimeout(() => {
-         onTasksUpdate(updated.filter(t => !t.isCompleted || t.id === id));
+         onTasksUpdate(prev => prev.filter(t => !t.isCompleted || t.id === id));
       }, 500);
     }
   };
@@ -94,7 +94,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
       xpValue: 150,
       isAiGenerated: true
     };
-    onTasksUpdate([nextTask, ...tasks.filter(t => !t.isCompleted)]);
+    onTasksUpdate(prev => [nextTask, ...prev.filter(t => !t.isCompleted)]);
   };
 
   const handleMasteryFinish = () => {
@@ -110,7 +110,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
   };
 
   const toggleSubTask = (taskId: string, subTaskId: string) => {
-    const updated = tasks.map(t => {
+    onTasksUpdate(prev => prev.map(t => {
       if (t.id === taskId && t.subTasks) {
         const subTask = t.subTasks.find(st => st.id === subTaskId);
         if (subTask) {
@@ -126,16 +126,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
         }
       }
       return t;
-    });
-    onTasksUpdate(updated);
+    }));
   };
 
   const deleteTask = (id: string) => {
-    onTasksUpdate(tasks.filter(t => t.id !== id));
+    onTasksUpdate(prev => prev.filter(t => t.id !== id));
   };
 
   const clearCompleted = () => {
-    onTasksUpdate(tasks.filter(t => !t.isCompleted));
+    onTasksUpdate(prev => prev.filter(t => !t.isCompleted));
   };
 
   const addTask = () => {
@@ -153,7 +152,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
       xpValue: diffData?.xp || 50,
       isAiGenerated: false
     };
-    onTasksUpdate([newTask, ...tasks]);
+    onTasksUpdate(prev => [newTask, ...prev]);
     resetForm();
   };
 
@@ -165,7 +164,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
     const questTitle = newTitle;
     const questId = Math.random().toString(36).substr(2, 9);
     
-    // Create the task immediately in the UI
     const newTask: Task = {
       id: questId,
       title: questTitle,
@@ -176,21 +174,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
       createdAt: now,
       xpValue: (diffData?.xp || 50),
       isAiGenerated: true,
-      subTasks: [] // Initially empty
+      subTasks: []
     };
     
-    // Instant UI update
-    const currentTasksSnapshot = [newTask, ...tasks];
-    onTasksUpdate(currentTasksSnapshot);
-    resetForm(); // Close modal instantly
+    // UI Updates Instantly
+    onTasksUpdate(prev => [newTask, ...prev]);
+    resetForm(); 
 
-    // AI Background Processing
+    // Background AI Process
     getAITaskSuggestions(questTitle).then(suggestions => {
       if (suggestions && suggestions.length > 0) {
-        // Find the quest in the latest state and update its subtasks
-        // Since we don't have direct access to the parent state, we rely on the next update cycle
-        // or the parent will handle the persistence. We call onTasksUpdate again with the new data.
-        onTasksUpdate(currentTasksSnapshot.map(t => 
+        onTasksUpdate(prev => prev.map(t => 
           t.id === questId ? {
             ...t,
             xpValue: t.xpValue + (suggestions.length * 10),
@@ -294,7 +288,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ tasks, onTasksUpdate, onComplet
                   </div>
                </div>
             ) : isMasteryPrompted && masteryData ? (
-               // Introduction Phase (Optional Choice)
                <div className="text-center space-y-6 py-8">
                   <div className="text-5xl animate-bounce">⚡</div>
                   <div>
